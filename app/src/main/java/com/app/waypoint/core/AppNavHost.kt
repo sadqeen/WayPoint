@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.app.waypoint.screens.AddPlace
 
 @Composable
 fun AppNavHost(navHostController: NavHostController) {
@@ -16,7 +17,7 @@ fun AppNavHost(navHostController: NavHostController) {
             Text(text = "Places Screen")
         }
         composable("add") {
-            Text(text = "Add Screen")
+            AddPlace(navHostController)
         }
         composable("History") {
             Text(text = "History Screen")
