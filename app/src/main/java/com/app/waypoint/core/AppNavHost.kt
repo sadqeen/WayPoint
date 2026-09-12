@@ -16,7 +16,7 @@ fun AppNavHost(navHostController: NavHostController) {
         composable("Places") {
             Text(text = "Places Screen")
         }
-        composable("add") {
+        composable("addPlace") {
             AddPlace(navHostController)
         }
         composable("History") {

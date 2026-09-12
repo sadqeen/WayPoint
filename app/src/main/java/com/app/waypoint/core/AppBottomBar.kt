@@ -22,7 +22,7 @@ import com.app.waypoint.R
 fun AppBottomBar(navHostController: NavHostController) {
     val bottomNavItems = listOf(
         BottomNavItems("Places", "Places", R.drawable.ic_places),
-        BottomNavItems("add", "Add", R.drawable.ic_add_v2),
+        BottomNavItems("addPlace", "Add", R.drawable.ic_add_v2),
         BottomNavItems("History", "History", R.drawable.ic_history)
     )
     val navBackStackEntry = navHostController.currentBackStackEntryAsState()
@@ -30,7 +30,7 @@ fun AppBottomBar(navHostController: NavHostController) {
 
     NavigationBar {
         bottomNavItems.forEach { item ->
-            val isAdd = item.route == "add"
+            val isAdd = item.route == "addPlace"
             NavigationBarItem(
                 selected = item.route == currentRoute,
                 onClick = {
