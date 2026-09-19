@@ -17,32 +17,42 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.app.waypoint.model.BottomNavItems
 import com.app.waypoint.R
 
-
 @Composable
 fun AppBottomBar(navHostController: NavHostController) {
+    val navBackStackEntry = navHostController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry.value?.destination?.route
+
+    AppBottomBarContent(
+        currentRoute = currentRoute,
+        onNavigate = { route ->
+            navHostController.navigate(route) {
+                popUpTo(navHostController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    )
+}
+
+@Composable
+fun AppBottomBarContent(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
     val bottomNavItems = listOf(
         BottomNavItems("Places", "Places", R.drawable.ic_places),
         BottomNavItems("addPlace", "Add", R.drawable.ic_add_v2),
         BottomNavItems("History", "History", R.drawable.ic_history)
     )
-    val navBackStackEntry = navHostController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry.value?.destination?.route
 
     NavigationBar {
         bottomNavItems.forEach { item ->
             val isAdd = item.route == "addPlace"
             NavigationBarItem(
                 selected = item.route == currentRoute,
-                onClick = {
-                    navHostController.navigate(item.route) {
-                        popUpTo(navHostController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-
-                },
+                onClick = { onNavigate(item.route) },
                 icon = {
                     Icon(
                         painter = painterResource(id = item.icon),

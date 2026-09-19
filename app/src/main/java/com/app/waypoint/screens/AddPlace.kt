@@ -1,6 +1,7 @@
 package com.app.waypoint.screens
 
 import android.Manifest
+import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -51,6 +52,7 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.widget.PlaceAutocomplete
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -60,9 +62,21 @@ import com.google.maps.android.compose.rememberCameraPositionState
 
 @Composable
 fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hiltViewModel()) {
+    AddPlaceScreen(
+        onBack = { navController.popBackStack() },
+        onSavePlace = { viewModel.savePlace(it) }
+    )
+}
+
+@Composable
+fun AddPlaceScreen(
+    onBack: () -> Unit,
+    onSavePlace: (WayPlace) -> Unit
+) {
     val context = LocalContext.current
     val placesClient = remember { Places.createClient(context) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -71,10 +85,11 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
+
     var searchQuery by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var placeTag by remember { mutableStateOf("") }
-    var errorDescription by remember { mutableStateOf<String?>(null)}
+    var errorDescription by remember { mutableStateOf<String?>(null) }
     var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(0.0, 0.0), 16f)
@@ -83,7 +98,7 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
     val autocompleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
+        if (result.resultCode == Activity.RESULT_OK) {
             val prediction = PlaceAutocomplete.getPredictionFromIntent(result.data!!)
             prediction?.placeId?.let { placeId ->
                 val request = FetchPlaceRequest.newInstance(
@@ -122,9 +137,48 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             hasLocationPermission = granted
         }
+
     LaunchedEffect(Unit) {
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
+
+    AddPlaceContent(
+        searchQuery = searchQuery,
+        placeTag = placeTag,
+        errorDescription = errorDescription,
+        selectedLocation = selectedLocation,
+        cameraPositionState = cameraPositionState,
+        hasLocationPermission = hasLocationPermission,
+        onPlaceTagChange = {
+            placeTag = it
+            errorDescription = null
+        },
+        onSearchClick = {
+            val intent = PlaceAutocomplete.createIntent(context)
+            autocompleteLauncher.launch(intent)
+        },
+        onCancelClick = onBack,
+        onSaveClick = {
+            val waypoint = WayPlace(placeTag, searchQuery, address, selectedLocation)
+            onSavePlace(waypoint)
+            onBack()
+        }
+    )
+}
+
+@Composable
+fun AddPlaceContent(
+    searchQuery: String,
+    placeTag: String,
+    errorDescription: String?,
+    selectedLocation: LatLng?,
+    cameraPositionState: CameraPositionState,
+    hasLocationPermission: Boolean,
+    onPlaceTagChange: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onCancelClick: () -> Unit,
+    onSaveClick: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -164,8 +218,7 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
                     LaunchedEffect(interactionSource) {
                         interactionSource.interactions.collect {
                             if (it is PressInteraction.Release) {
-                                val intent = PlaceAutocomplete.createIntent(context)
-                                autocompleteLauncher.launch(intent)
+                                onSearchClick()
                             }
                         }
                     }
@@ -180,10 +233,7 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
         ) {
             OutlinedTextField(
                 value = placeTag,
-                onValueChange = {
-                    placeTag = it
-                    errorDescription = null
-                },
+                onValueChange = onPlaceTagChange,
                 label = { Text("Enter Place Name") },
                 isError = errorDescription != null,
                 supportingText = { errorDescription?.let { Text(it) } },
@@ -202,17 +252,13 @@ fun AddPlace(navController: NavHostController, viewModel: AddPlaceViewModel = hi
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = onCancelClick,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(text = "Cancel")
                 }
                 Button(
-                    onClick = {
-                        val waypoint = WayPlace(placeTag, searchQuery, address, selectedLocation)
-                        viewModel.savePlace(waypoint)
-                        navController.popBackStack()
-                    },
+                    onClick = onSaveClick,
                     enabled = selectedLocation != null && placeTag.isNotEmpty(),
                     modifier = Modifier.weight(1f)
                 ) {
