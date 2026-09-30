@@ -14,4 +14,8 @@ class AddPlaceViewModel @Inject constructor(
     fun savePlace(wayPlace: WayPlace) {
         preferenceManager.saveWayPlace(wayPlace)
     }
+
+    fun getAllPlaces(): List<WayPlace> {
+       return preferenceManager.getWayPlaces()
+    }
 }
